@@ -7,6 +7,7 @@ from itertools import islice
 import streamlit as st 
 import time
 from firebase_db import get_db
+import socket
 
 
 # initiating firebase db
@@ -33,15 +34,41 @@ def load_user_profile():
 
 
 
-# function to search web using duckduckgo
+# # function to search web using duckduckgo
+# def search_web(query, max_results=3, max_retries=3, base_delay=1.0):
+#     """
+#     Query DuckDuckGo via DDGS.text(), returning up to max_results items.
+#     On a 202 rate‑limit, retries with exponential back‑off.
+#     """
+#     for attempt in range(1, max_retries + 1):
+#         try:
+#             with DDGS() as ddgs:
+#                 return list(islice(ddgs.text(query), max_results))
+#         except DuckDuckGoSearchException as e:
+#             msg = str(e)
+#             if "202" in msg:
+#                 wait = base_delay * (2 ** (attempt - 1))
+#                 print(f"[search_web] Rate‑limited (202). Retry {attempt}/{max_retries} in {wait:.1f}s…")
+#                 time.sleep(wait)
+#             else:
+#                 # unexpected error, re‑raise
+#                 raise
+#     # if we reach here, all retries failed
+#     print(f"[search_web] Failed to fetch results after {max_retries} attempts.")
+#     return []
+
+
+
+# # function to search web using duckduckgo
 def search_web(query, max_results=3, max_retries=3, base_delay=1.0):
     """
     Query DuckDuckGo via DDGS.text(), returning up to max_results items.
     On a 202 rate‑limit, retries with exponential back‑off.
+    On timeout, retries similarly.
     """
     for attempt in range(1, max_retries + 1):
         try:
-            with DDGS() as ddgs:
+            with DDGS(timeout=10) as ddgs:
                 return list(islice(ddgs.text(query), max_results))
         except DuckDuckGoSearchException as e:
             msg = str(e)
@@ -50,11 +77,14 @@ def search_web(query, max_results=3, max_retries=3, base_delay=1.0):
                 print(f"[search_web] Rate‑limited (202). Retry {attempt}/{max_retries} in {wait:.1f}s…")
                 time.sleep(wait)
             else:
-                # unexpected error, re‑raise
                 raise
-    # if we reach here, all retries failed
+        except (socket.timeout, TimeoutError) as e:
+            wait = base_delay * (2 ** (attempt - 1))
+            print(f"[search_web] Timeout occurred. Retry {attempt}/{max_retries} in {wait:.1f}s…")
+            time.sleep(wait)
     print(f"[search_web] Failed to fetch results after {max_retries} attempts.")
     return []
+
 
 
 # Defining function for generating recommendations
