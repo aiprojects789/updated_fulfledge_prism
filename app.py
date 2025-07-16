@@ -153,42 +153,85 @@ class TieredInterviewAgent:
         return None
     
     # function to regenerate and add llm generated conversational style
+    # def regenerate_question_with_motivation(self, next_question: str, user_response: str = None) -> str:
+    #     """
+    #     Generate a conversational follow-up by acknowledging the user's response, then smoothly introducing the next question.
+    #     The goal is to create a natural, friendly transition that weaves in encouragement or personal acknowledgment.
+
+    #     Returns a conversational-style message that leads into the next question.
+    #     """
+    #     llm = ChatOpenAI(
+    #         temperature=0.7,
+    #         model_name="gpt-4o-mini",
+    #         openai_api_key=self.openai_key
+    #     )
+
+    #     # Build messages
+    #     messages = [
+    #         SystemMessage(content=(
+    #             "You are a friendly, engaging interviewer having a casual, supportive conversation. "
+    #             "When provided with a user's previous response and a next question, create a natural, conversational transition. "
+    #             "Acknowledge or positively reflect on the user's response, and then smoothly ask the next question. "
+    #             "Keep the tone friendly, curious, and encouraging, and avoid robotic phrasing. "
+    #             "Do not rigidly repeat the question; weave it naturally into your words."
+    #         ))
+    #     ]
+
+    #     # Construct the prompt
+    #     prompt = f"Next question: {next_question}\n"
+    #     if user_response:
+    #         prompt += f"User's previous response: {user_response}\n"
+    #     prompt += (
+    #         "Please write a natural, conversational transition that acknowledges the user's response "
+    #         "and leads into the next question. Keep it warm, curious, and supportive."
+    #     )
+
+    #     messages.append(HumanMessage(content=prompt))
+
+    #     # Get LLM response
+    #     response = llm(messages)
+    #     return response.content.strip()
+
+    # function to regenerate and add llm generated conversational style
     def regenerate_question_with_motivation(self, next_question: str, user_response: str = None) -> str:
         """
-        Generate a conversational follow-up by acknowledging the user's response, then smoothly introducing the next question.
-        The goal is to create a natural, friendly transition that weaves in encouragement or personal acknowledgment.
-
-        Returns a conversational-style message that leads into the next question.
+        Generate a conversational follow-up by strictly acknowledging the user's response, 
+        then smoothly introducing the next question. Avoids assumptions about unstated context.
         """
         llm = ChatOpenAI(
             temperature=0.7,
             model_name="gpt-4o-mini",
             openai_api_key=self.openai_key
         )
-
-        # Build messages
+    
+        # Updated system message with strict grounding rules
         messages = [
             SystemMessage(content=(
-                "You are a friendly, engaging interviewer having a casual, supportive conversation. "
-                "When provided with a user's previous response and a next question, create a natural, conversational transition. "
-                "Acknowledge or positively reflect on the user's response, and then smoothly ask the next question. "
-                "Keep the tone friendly, curious, and encouraging, and avoid robotic phrasing. "
-                "Do not rigidly repeat the question; weave it naturally into your words."
+                "You are a friendly interviewer creating natural conversational transitions. "
+                "STRICTLY follow these rules:\n"
+                "1. Acknowledge ONLY what the user explicitly stated - no interpretations or assumptions\n"
+                "2. For neutral responses (e.g., 'no', 'not really'), use simple transitions\n"
+                "3. Never add motivations/context the user didn't provide\n"
+                "4. Keep transitions concise (1-2 sentences max)\n"
+                "5. Weave the next question naturally without repeating it verbatim"
             ))
         ]
-
-        # Construct the prompt
-        prompt = f"Next question: {next_question}\n"
+    
+        # Construct conditional prompt
         if user_response:
-            prompt += f"User's previous response: {user_response}\n"
-        prompt += (
-            "Please write a natural, conversational transition that acknowledges the user's response "
-            "and leads into the next question. Keep it warm, curious, and supportive."
-        )
-
+            prompt = (
+                f"User's exact response: '{user_response}'\n"
+                f"Next question: {next_question}\n\n"
+                "Create a CONCISE transition that:\n"
+                "- Acknowledges ONLY the literal user response\n"
+                "- Asks the next question naturally\n"
+                "- Avoids these words: 'great', 'awesome', 'wonderful'\n"
+                "Example format: [Brief literal acknowledgment] → [Natural question lead-in]"
+            )
+        else:
+            prompt = f"Ask this naturally without preamble: {next_question}"
+    
         messages.append(HumanMessage(content=prompt))
-
-        # Get LLM response
         response = llm(messages)
         return response.content.strip()
 
