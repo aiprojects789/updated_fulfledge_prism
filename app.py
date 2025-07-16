@@ -193,7 +193,7 @@ class TieredInterviewAgent:
     #     return response.content.strip()
 
     # function to regenerate and add llm generated conversational style
-     def regenerate_question_with_motivation(self, next_question: str, user_response: str) -> str:
+    def regenerate_question_with_motivation(self, next_question: str, user_response: str) -> str:
         llm = ChatOpenAI(
             temperature=0.5, 
             model_name="gpt-4",
@@ -230,7 +230,7 @@ class TieredInterviewAgent:
         
         response = llm(messages)
         return response.content.strip()
-
+    
     # function to submit answer to profile at firebase
     def submit_answer(self, answer):
         """Submit answer and update profile structure"""
