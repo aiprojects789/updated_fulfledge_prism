@@ -193,45 +193,41 @@ class TieredInterviewAgent:
     #     return response.content.strip()
 
     # function to regenerate and add llm generated conversational style
-    def regenerate_question_with_motivation(self, next_question: str, user_response: str = None) -> str:
-        """
-        Generate a conversational follow-up by strictly acknowledging the user's response, 
-        then smoothly introducing the next question. Avoids assumptions about unstated context.
-        """
+     def regenerate_question_with_motivation(self, next_question: str, user_response: str) -> str:
         llm = ChatOpenAI(
-            temperature=0.5,
+            temperature=0.5, 
             model_name="gpt-4",
             openai_api_key=self.openai_key
         )
-    
-        # Updated system message with strict grounding rules
+        
+        # Detect if user skipped/avoided the question
+        skip_keywords = ["rather not", "prefer not", "don't want to", "private", "skip"]
+        skipped = any(kwd in user_response.lower() for kwd in skip_keywords)
+        
         messages = [
             SystemMessage(content=(
-                "You are a friendly interviewer creating natural conversational transitions. "
-                "STRICTLY follow these rules:\n"
-                "1. Acknowledge ONLY what the user explicitly stated - no interpretations or assumptions\n"
-                "2. For neutral responses (e.g., 'no', 'not really'), use simple transitions\n"
-                "3. Never add motivations/context the user didn't provide\n"
-                "4. Keep transitions concise (1-2 sentences max)\n"
-                "5. Weave the next question naturally without repeating it verbatim"
+                "You're a perceptive interviewer creating natural dialogue. Your task:\n"
+                "1. ACKNOWLEDGE: Briefly reference the user's last response (1 phrase)\n"
+                "2. TRANSITION: Build on their answer OR pivot gracefully if they declined\n"
+                "3. ASK: Weave the next question into conversation naturally\n\n"
+                "Guidelines:\n"
+                "- Keep responses to 1-2 sentences\n"
+                "- If user avoids question: acknowledge respectfully and move on\n"
+                "- Never repeat the user's exact words\n"
+                "- Maintain neutral, curious tone\n"
+                "- Skip markdown formatting\n\n"
+                "Example transitions:\n"
+                "User skip: 'Absolutely, I respect that. Let's shift gears...'\n"
+                "Normal flow: 'That makes sense with your preference for X. When it comes to Y...'"
+            )),
+            HumanMessage(content=(
+                f"User's last response: '{user_response}'\n"
+                f"Skipped question? {'Yes' if skipped else 'No'}\n"
+                f"Next question: '{next_question}'\n\n"
+                "Your conversational response:"
             ))
         ]
-    
-        # Construct conditional prompt
-        if user_response:
-            prompt = (
-                f"User's exact response: '{user_response}'\n"
-                f"Next question: {next_question}\n\n"
-                "Create a CONCISE transition that:\n"
-                "- Acknowledges ONLY the literal user response\n"
-                "- Asks the next question naturally\n"
-                "- Avoids these words: 'great', 'awesome', 'wonderful'\n"
-                "Example format: [Brief literal acknowledgment] → [Natural question lead-in]"
-            )
-        else:
-            prompt = f"Ask this naturally without preamble: {next_question}"
-    
-        messages.append(HumanMessage(content=prompt))
+        
         response = llm(messages)
         return response.content.strip()
 
@@ -575,7 +571,7 @@ else:
                         phase_info = f"**Tier {agent.current_tier_idx + 1} - {current_q['phase'].title()} Phase**"
                         
                         # Regenerate question with motivation
-                        motivated_question = agent.regenerate_question_with_motivation(current_q['question'])
+                        motivated_question = agent.regenerate_question_with_motivation(current_q['question'] , user_input)
                         
                         st.session_state.interview_messages.append({
                             "role": "assistant",
