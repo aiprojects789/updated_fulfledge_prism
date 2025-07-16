@@ -199,8 +199,8 @@ class TieredInterviewAgent:
         then smoothly introducing the next question. Avoids assumptions about unstated context.
         """
         llm = ChatOpenAI(
-            temperature=0.7,
-            model_name="gpt-4o-mini",
+            temperature=0.5,
+            model_name="gpt-4",
             openai_api_key=self.openai_key
         )
     
